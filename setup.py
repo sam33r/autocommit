@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="ai-commit-gen",
-    version="0.1",
+    version="0.2",
     packages=find_packages(),
     scripts=["ai-commit.py"],
     install_requires=[
@@ -14,7 +14,7 @@ setup(
         "keyring",
         "argparse",
     ],
-    description="A binary to generate commit messages or commits using generative models."
+    description="A binary to generate commit messages or commits using generative models.",
     long_description=long_description,
     long_description_content_type="text/markdown",
 )
