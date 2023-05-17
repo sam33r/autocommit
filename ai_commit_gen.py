@@ -10,6 +10,7 @@ import logging
 import subprocess
 import getpass
 
+
 def get_root_dir_name():
     """
     Returns the name of the root git directory.
@@ -20,6 +21,7 @@ def get_root_dir_name():
     except subprocess.CalledProcessError:
         return ""
 
+
 def get_last_commits(num_commits=3):
     """
     Returns the commit messages of the last num_commits commits made in this git repository.
@@ -27,7 +29,7 @@ def get_last_commits(num_commits=3):
     try:
         commit_messages = subprocess.check_output(
             ["git", "log", "-n", str(num_commits), "--pretty=format:%B"],
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
         )
         return f"Recent commits:\n{commit_messages.decode()}\n\n"
     except subprocess.CalledProcessError:
@@ -46,6 +48,7 @@ def get_character_limit(model):
         print(f"Invalid model: {model}")
         sys.exit(1)
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -55,7 +58,10 @@ def main():
         "-c", "--commit", action="store_true", help="Make the git commit directly"
     )
     parser.add_argument(
-        "-e", "--include_extra_context", action="store_true", help="Experimental, include extra context in the prompt to the AI model."
+        "-e",
+        "--include_extra_context",
+        action="store_true",
+        help="Experimental, include extra context in the prompt to the AI model.",
     )
     parser.add_argument(
         "-m", "--model", default="gpt-3.5-turbo", help="Specify the model to be used"
@@ -71,14 +77,14 @@ def main():
     # Get the OpenAI API key from the environment variables or keyring.
     api_key = os.getenv("OPENAI_KEY")
     if api_key is None:
-        api_key = keyring.get_password("autocommit", "openai_key")
+        api_key = keyring.get_password("ai_commit_gen", "openai_key")
         if api_key is None:
             store_in_keyring = input(
                 "No OpenAI API key found. Would you like to store one in the keyring? (y/n) "
             )
-            if store_in_keyring.lower() == 'y':
+            if store_in_keyring.lower() == "y":
                 api_key = getpass.getpass("Enter your OpenAI API key: ")
-                keyring.set_password("autocommit", "openai_key", api_key)
+                keyring.set_password("ai_commit_gen", "openai_key", api_key)
             else:
                 print("No OpenAI API key provided. Exiting.")
                 sys.exit(1)
@@ -107,7 +113,7 @@ def main():
         args.prompt
         if args.prompt
         else (
-        f"""As your response, please provide a concise git commit message for the changes described below.
+            f"""As your response, please provide a concise git commit message for the changes described below.
 
 The first paragraph of your response should be a single short line less than 50 characters. 
 
@@ -141,7 +147,7 @@ Output of "git diff --staged":
     # If the commit flag was passed, make the commit.
     if args.commit:
         commit_message = [("-m " + p) for p in response_content.split("\n\n")]
-        subprocess.run(['git', 'commit'] + commit_message, check=True)
+        subprocess.run(["git", "commit"] + commit_message, check=True)
     else:
         print(response_content)
 
