@@ -1,14 +1,19 @@
 from setuptools import setup, find_packages
 
+# Read in the README for the long description
+with open('README.md', 'r') as f:
+    long_description = f.read()
+
 setup(
-    name='autocommit',  # This is the name of your PyPI-package.
-    version='0.1',  # Update the version number for new releases
-    packages=find_packages(),  # This will include all sub-packages
-    scripts=['autocommit.py'],  # The name of your script
-    install_requires=[  # Add any other dependencies your script needs
+    name='ai-commit',
+    version='0.1',
+    packages=find_packages(),
+    scripts=['ai-commit.py'],
+    install_requires=[
         'openai',
         'keyring',
         'argparse',
-        'subprocess',  # This is part of the standard library, so you don't need to include it
     ],
+    long_description=long_description,
+    long_description_content_type='text/markdown',
 )

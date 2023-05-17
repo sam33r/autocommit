@@ -55,6 +55,9 @@ def main():
         "-c", "--commit", action="store_true", help="Make the git commit directly"
     )
     parser.add_argument(
+        "-e", "--include_extra_context", action="store_true", help="Experimental, include extra context in the prompt to the AI model."
+    )
+    parser.add_argument(
         "-m", "--model", default="gpt-3.5-turbo", help="Specify the model to be used"
     )
     parser.add_argument(
@@ -95,6 +98,9 @@ def main():
 
     if len(git_diff) > char_limit:
         git_diff = git_diff[:char_limit] + f" (cut off at {char_limit} characters)."
+    extra_context = ""
+    if args.include_extra_context:
+        extra_context = f"{get_root_dir_name()}{get_last_commits()}"
 
     # Create prompt.
     prompt = (
@@ -103,12 +109,11 @@ def main():
         else (
         f"""As your response, please provide a concise git commit message for the changes described below.
 
-The first paragraph of your response should be a single short line to serve as the title of the commit. 
+The first paragraph of your response should be a single short line less than 50 characters. 
 
 Add more paragraphs that describe the changes in more detail only if necessary. Prefer to use bullet lists instead of long paragraphs.
 
-{get_root_dir_name()}{get_last_commits()}
-
+{extra_context}
 Output of "git diff --staged": 
 {git_diff}
 """
