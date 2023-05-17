@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="ai-commit-gen",
-    version="0.3",
+    version="0.4",
     packages=find_packages(),
     scripts=["ai_commit_gen.py"],
     install_requires=[
