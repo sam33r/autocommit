@@ -25,10 +25,14 @@ def get_last_commits(num_commits=3):
     Returns the commit messages of the last num_commits commits made in this git repository.
     """
     try:
-        commit_messages = subprocess.check_output(["git", "log", "-n", str(num_commits), "--pretty=format:%B"])
+        commit_messages = subprocess.check_output(
+            ["git", "log", "-n", str(num_commits), "--pretty=format:%B"],
+            stderr=subprocess.DEVNULL
+        )
         return f"Recent commits:\n{commit_messages.decode()}\n\n"
     except subprocess.CalledProcessError:
         return ""
+
 
 def get_character_limit(model):
     # Determine character limit based on the model.
