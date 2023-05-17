@@ -14,6 +14,7 @@ setup(
         "keyring",
         "argparse",
     ],
+    description="A binary to generate commit messages or commits using generative models."
     long_description=long_description,
     long_description_content_type="text/markdown",
 )
