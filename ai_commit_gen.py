@@ -11,27 +11,40 @@ import subprocess
 import getpass
 
 
-def get_root_dir_name():
-    """
-    Returns the name of the root git directory.
-    """
-    try:
-        root_dir = subprocess.check_output(["git", "rev-parse", "--show-toplevel"])
-        return f"Repository root dir: {os.path.basename(root_dir.strip())}\n\n"
-    except subprocess.CalledProcessError:
-        return ""
+prompts = {
+    "default": lambda: """As your response, please provide a concise git commit message for the changes described below.
+The first paragraph of your response should be a single short line less than 50 characters. 
+Add more paragraphs that describe the changes in more detail only if necessary. Prefer to use bullet lists instead of long paragraphs.""",
+    "oneliner": lambda: "Please provide a one-liner git commit message for the changes described below. Your response will be used as the commit message.",
+    "refactoring": lambda: "Please provide a detailed git commit message that explains the refactoring changes described below. Please detail every major change as a separate bullet point. Your response will be used as the commit message.",
+    "documentation": lambda: "Please provide a git commit message that explains the documentation changes described below.",
+    "mimic": lambda: f"Please provide a git commit message for the changes described below. Your message should closely mimic the style and structure of the following recent git commit messages in this repository: \n{get_last_commits()}",
+}
 
 
-def get_last_commits(num_commits=3):
+def get_last_commits(num_commits=5):
     """
     Returns the commit messages of the last num_commits commits made in this git repository.
     """
     try:
-        commit_messages = subprocess.check_output(
-            ["git", "log", "-n", str(num_commits), "--pretty=format:%B"],
-            stderr=subprocess.DEVNULL,
-        )
-        return f"Recent commits:\n{commit_messages.decode()}\n\n"
+        commit_messages = (
+            subprocess.check_output(
+                ["git", "log", "-n", str(num_commits), "--pretty=format:%B"],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .split("\n\n")
+        )  # decode and split the output into a list of commit messages
+
+        # Prefix each commit message with "Example <N> - "
+        commit_messages = [
+            f"Example {i+1} - {msg}" for i, msg in enumerate(commit_messages)
+        ]
+
+        # Join the commit messages back together with double newlines
+        commit_messages = "\n\n".join(commit_messages)
+
+        return f"Recent commits:\n{commit_messages}\n\n"
     except subprocess.CalledProcessError:
         return ""
 
@@ -52,16 +65,19 @@ def get_character_limit(model):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-p", "--prompt", help="Specify the prompt for the OpenAI model"
+        "-p",
+        "--prompt",
+        default="default",
+        help="""Specify the prompt for the OpenAI model. You can enter one of the following preset words:
+        "default" - A general-purpose prompt requesting a git commit message for the described changes.
+        "oneliner" - A prompt requesting a one-liner git commit message for the described changes.
+        "refactoring" - A prompt requesting a git commit message specifically for refactoring changes.
+        "documentation" - A prompt requesting a git commit message specifically for documentation changes.
+        "mimic" - A prompt requesting a git commit message that mimics the style of recent commit messages.
+        If you enter any other string, it will be used as the prompt directly. If no prompt is specified, the "default" prompt is used.""",
     )
     parser.add_argument(
         "-c", "--commit", action="store_true", help="Make the git commit directly"
-    )
-    parser.add_argument(
-        "-e",
-        "--include_extra_context",
-        action="store_true",
-        help="Experimental, include extra context in the prompt to the AI model.",
     )
     parser.add_argument(
         "-m", "--model", default="gpt-3.5-turbo", help="Specify the model to be used"
@@ -88,7 +104,8 @@ def main():
             else:
                 print("No OpenAI API key provided. Exiting.")
                 sys.exit(1)
-    openai.api_key = api_key
+    # Remove any extra whitespace from the API key.
+    openai.api_key = api_key.strip()
 
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -104,29 +121,20 @@ def main():
 
     if len(git_diff) > char_limit:
         git_diff = git_diff[:char_limit] + f" (cut off at {char_limit} characters)."
-    extra_context = ""
-    if args.include_extra_context:
-        extra_context = f"{get_root_dir_name()}{get_last_commits()}"
 
-    # Create prompt.
-    prompt = (
-        args.prompt
-        if args.prompt
-        else (
-            f"""As your response, please provide a concise git commit message for the changes described below.
+    if args.prompt in prompts:
+        prompt = prompts[args.prompt]()
+    else:
+        prompt = args.prompt or prompts["default"]()
 
-The first paragraph of your response should be a single short line less than 50 characters. 
+    user_message = f"""{prompt}
 
-Add more paragraphs that describe the changes in more detail only if necessary. Prefer to use bullet lists instead of long paragraphs.
-
-{extra_context}
 Output of "git diff --staged": 
 {git_diff}
 """
-        )
-    )
 
-    messages.append({"role": "user", "content": prompt})
+    # print(user_message)
+    messages.append({"role": "user", "content": user_message})
 
     # Note the start time.
     start_time = time.time()
