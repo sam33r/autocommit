@@ -1,2 +1,2 @@
-litellm==1.16.9
-keyring==24.3.0
+litellm
+keyring

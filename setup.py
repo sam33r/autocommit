@@ -10,8 +10,8 @@ setup(
     packages=find_packages(),
     scripts=["ai_commit_gen.py"],
     install_requires=[
-        "litellm==1.16.9",
-        "keyring==24.3.0",
+        "litellm",
+        "keyring",
     ],
     description="A binary to generate commit messages or commits using generative models.",
     long_description=long_description,
