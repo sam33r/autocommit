@@ -4,7 +4,7 @@ import os
 import sys
 import time
 import argparse
-import openai
+from litellm import completion, trim_messages
 import keyring
 import logging
 import subprocess
@@ -49,14 +49,13 @@ def get_last_commits(num_commits=5):
         return ""
 
 
-def get_character_limit(model):
-    # Determine character limit based on the model.
-    if model == "gpt-3.5-turbo":
-        return 12000
-    elif model == "gpt-4":
-        return 25000
-    elif model == "gpt-4-32k":
-        return 120000
+def get_provider(model):
+    if model.startswith("gpt"):
+        return "openai"
+    elif model.startswith("claude"):
+        return "anthropic"
+    elif model.startswith("ollama/"):
+        return "ollama"
     else:
         print(f"Invalid model: {model}")
         sys.exit(1)
@@ -80,7 +79,7 @@ def main():
         "-c", "--commit", action="store_true", help="Make the git commit directly"
     )
     parser.add_argument(
-        "-m", "--model", default="gpt-3.5-turbo", help="Specify the model to be used"
+        "-m", "--model", default="gpt-3.5-turbo", help="Specify the model to be used (e.g., gpt-3.5-turbo, claude-2, ollama/llama2)"
     )
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Enable debug logging"
@@ -90,37 +89,37 @@ def main():
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    # Get the OpenAI API key from the environment variables or keyring.
-    api_key = os.getenv("OPENAI_KEY")
-    if api_key is None:
-        api_key = keyring.get_password("ai_commit_gen", "openai_key")
+    provider = get_provider(args.model)
+    
+    if provider != "ollama":
+        # Get the API key from the environment variables or keyring.
+        env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
+        api_key = os.getenv(env_var)
         if api_key is None:
-            store_in_keyring = input(
-                "No OpenAI API key found. Would you like to store one in the keyring? (y/n) "
-            )
-            if store_in_keyring.lower() == "y":
-                api_key = getpass.getpass("Enter your OpenAI API key: ")
-                keyring.set_password("ai_commit_gen", "openai_key", api_key)
-            else:
-                print("No OpenAI API key provided. Exiting.")
-                sys.exit(1)
-    # Remove any extra whitespace from the API key.
-    openai.api_key = api_key.strip()
+            api_key = keyring.get_password("ai_commit_gen", f"{provider}_key")
+            if api_key is None:
+                store_in_keyring = input(
+                    f"No {provider.capitalize()} API key found. Would you like to store one in the keyring? (y/n) "
+                )
+                if store_in_keyring.lower() == "y":
+                    api_key = getpass.getpass(f"Enter your {provider.capitalize()} API key: ")
+                    keyring.set_password("ai_commit_gen", f"{provider}_key", api_key)
+                else:
+                    print(f"No {provider.capitalize()} API key provided. Exiting.")
+                    sys.exit(1)
+        # Remove any extra whitespace from the API key.
+        os.environ[env_var] = api_key.strip()
 
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
     ]
 
     git_diff = os.popen("git diff --staged --no-color").read()
-    char_limit = get_character_limit(args.model)
 
     # if git_diff empty or None, exit.
     if not git_diff:
         print("No changes to commit.")
         sys.exit(0)
-
-    if len(git_diff) > char_limit:
-        git_diff = git_diff[:char_limit] + f" (cut off at {char_limit} characters)."
 
     if args.prompt in prompts:
         prompt = prompts[args.prompt]()
@@ -133,16 +132,22 @@ Output of "git diff --staged":
 {git_diff}
 """
 
-    # print(user_message)
     messages.append({"role": "user", "content": user_message})
+
+    # Trim messages to fit within model's context length
+    messages = trim_messages(messages, args.model)
 
     # Note the start time.
     start_time = time.time()
 
     try:
-        response = openai.ChatCompletion.create(model=args.model, messages=messages)
+        response = completion(
+            model=args.model,
+            messages=messages,
+            api_base="http://localhost:11434" if provider == "ollama" else None
+        )
     except Exception as e:
-        logging.debug(f"Error calling OpenAI API: {e}")
+        logging.debug(f"Error calling LiteLLM API: {e}")
         sys.exit(1)
 
     end_time = time.time()
@@ -150,7 +155,7 @@ Output of "git diff --staged":
     # Log the time taken for the query.
     logging.debug(f"Query took {end_time - start_time:.2f} seconds")
 
-    response_content = response["choices"][0]["message"]["content"]
+    response_content = response.choices[0].message.content
 
     # If the commit flag was passed, make the commit.
     if args.commit:
