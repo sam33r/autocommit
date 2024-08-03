@@ -4,7 +4,8 @@ import os
 import sys
 import time
 import argparse
-from litellm import completion, trim_messages
+from litellm import completion
+from litellm.utils import trim_messages
 import keyring
 import logging
 import subprocess
@@ -12,19 +13,37 @@ import getpass
 
 
 prompts = {
-    "default": lambda: """As your response, please provide a concise git commit message for the changes described below.
-The first paragraph of your response should be a single short line less than 50 characters. 
-Add more paragraphs that describe the changes in more detail only if necessary. Prefer to use bullet lists instead of long paragraphs.""",
-    "oneliner": lambda: "Please provide a one-liner git commit message for the changes described below. Your response will be used as the commit message.",
-    "refactoring": lambda: "Please provide a detailed git commit message that explains the refactoring changes described below. Please detail every major change as a separate bullet point. Your response will be used as the commit message.",
-    "documentation": lambda: "Please provide a git commit message that explains the documentation changes described below.",
-    "mimic": lambda: f"Please provide a git commit message for the changes described below. Your message should closely mimic the style and structure of the following recent git commit messages in this repository: \n{get_last_commits()}",
+    "default": lambda: """
+You are an expert software engineer.
+Review the provided diffs which are about to be committed to a git repo.
+Review the diffs carefully.
+Generate a commit message for those changes.
+The commit message MUST use the imperative tense.
+Reply with JUST the commit message, without quotes, comments, questions, etc!
+""",
+    "refactoring": lambda: """
+Please provide a detailed git commit message that explains the refactoring changes described below.
+Please detail every major change as a separate bullet point.
+Reply with JUST the commit message, without quotes, comments, questions, etc!
+""",
+    "documentation": lambda: """
+Please provide a git commit message that explains the documentation changes described below.
+Reply with JUST the commit message, without quotes, comments, questions, etc!
+""",
+    "mimic": lambda: f"""
+Please provide a git commit message for the diffs provided below.
+Your message should closely mimic the style and structure of the following recent git commit messages in this repository:
+
+{get_last_commits()}
+
+Reply with JUST the commit message, without quotes, comments, questions, etc!
+""",
 }
 
 
 def get_last_commits(num_commits=5):
     """
-    Returns the commit messages of the last num_commits commits made in this git repository.
+    Returns the commit messages of the last num_commits commits.
     """
     try:
         commit_messages = (
@@ -50,6 +69,9 @@ def get_last_commits(num_commits=5):
 
 
 def get_provider(model):
+    """
+    Returns the provider of the model.
+    """
     if model.startswith("gpt"):
         return "openai"
     elif model.startswith("claude"):
@@ -69,7 +91,6 @@ def main():
         default="default",
         help="""Specify the prompt for the OpenAI model. You can enter one of the following preset words:
         "default" - A general-purpose prompt requesting a git commit message for the described changes.
-        "oneliner" - A prompt requesting a one-liner git commit message for the described changes.
         "refactoring" - A prompt requesting a git commit message specifically for refactoring changes.
         "documentation" - A prompt requesting a git commit message specifically for documentation changes.
         "mimic" - A prompt requesting a git commit message that mimics the style of recent commit messages.
@@ -79,7 +100,7 @@ def main():
         "-c", "--commit", action="store_true", help="Make the git commit directly"
     )
     parser.add_argument(
-        "-m", "--model", default="gpt-3.5-turbo", help="Specify the model to be used (e.g., gpt-3.5-turbo, claude-2, ollama/llama2)"
+        "-m", "--model", default="gpt-4o-mini", help="Specify the model to be used (e.g., gpt-3.5-turbo, claude-2, ollama/llama2)"
     )
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Enable debug logging"

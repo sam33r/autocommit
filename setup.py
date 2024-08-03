@@ -6,14 +6,14 @@ with open("README.md", "r") as f:
 
 setup(
     name="ai-commit-gen",
-    version="0.4",
+    version="0.5",
     packages=find_packages(),
     scripts=["ai_commit_gen.py"],
     install_requires=[
         "litellm",
         "keyring",
     ],
-    description="A binary to generate commit messages or commits using generative models.",
+    description="A binary to generate commit messages using generative models.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     entry_points={

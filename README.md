@@ -28,7 +28,7 @@ Ai-Commit-Gen uses litellm, which supports a wide range of language models from 
 
 - OpenAI models (e.g., gpt-3.5-turbo, gpt-4)
 - Anthropic models (e.g., claude-2)
-- Local models via Ollama (e.g., ollama/llama2)
+- Local models via Ollama (e.g., ollama/llama3.1)
 
 For a full list of supported models, please refer to the [litellm documentation](https://docs.litellm.ai/docs/providers).
 
@@ -59,15 +59,5 @@ ai-commit-gen --commit
 ai-commit-gen --model gpt-4
 
 # Use a local model via Ollama
-ai-commit-gen --model ollama/llama2
+ai-commit-gen --model ollama/llama3.1
 ```
-
-In these examples, Ai-Commit-Gen will consider the staged changes, generate a commit message using the specified model, and optionally commit the changes with the generated message.
-
-## Note
-
-Please make sure that you have the required permissions and credits to use the chosen API or local model setup.
-
-## Contribute
-
-Feel free to open an issue or submit a pull request if you have any issues or feature requests.
