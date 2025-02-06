@@ -89,7 +89,7 @@ def main():
         "-p",
         "--prompt",
         default="default",
-        help="""Specify the prompt for the OpenAI model. You can enter one of the following preset words:
+        help="""Specify the prompt for the llm model. You can enter one of the following preset words:
         "default" - A general-purpose prompt requesting a git commit message for the described changes.
         "refactoring" - A prompt requesting a git commit message specifically for refactoring changes.
         "documentation" - A prompt requesting a git commit message specifically for documentation changes.
@@ -111,7 +111,7 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
 
     provider = get_provider(args.model)
-    
+
     if provider != "ollama":
         # Get the API key from the environment variables or keyring.
         env_var = "OPENAI_API_KEY" if provider == "openai" else "ANTHROPIC_API_KEY"
@@ -149,7 +149,7 @@ def main():
 
     user_message = f"""{prompt}
 
-Output of "git diff --staged": 
+Output of "git diff --staged":
 {git_diff}
 """
 
