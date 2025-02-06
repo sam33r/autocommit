@@ -105,6 +105,9 @@ def main():
     parser.add_argument(
         "-d", "--debug", action="store_true", help="Enable debug logging"
     )
+    parser.add_argument(
+        "--apibase", help="Specify a custom API base URL for the model provider"
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -165,7 +168,7 @@ Output of "git diff --staged":
         response = completion(
             model=args.model,
             messages=messages,
-            api_base="http://localhost:11434" if provider == "ollama" else None
+            api_base=args.apibase if args.apibase else ("http://localhost:11434" if provider == "ollama" else None)
         )
     except Exception as e:
         logging.debug(f"Error calling LiteLLM API: {e}")
