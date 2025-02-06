@@ -2,3 +2,5 @@
 /dist/
 /ai_commit.egg-info/
 /ai_commit_gen.egg-info/
+.aider*
+/.venv/
