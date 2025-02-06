@@ -22,6 +22,8 @@ ai-commit-gen assumes that the current working directory is, or is a subdirector
 
 - `-d` or `--debug`: Enable debug logging.
 
+- `--apibase`: Specify a custom API base URL for the model provider.
+
 ## Supported Models
 
 Ai-Commit-Gen uses litellm, which supports a wide range of language models from various providers. Some of the supported models include:
@@ -60,4 +62,7 @@ ai-commit-gen --model gpt-4
 
 # Use a local model via Ollama
 ai-commit-gen --model ollama/llama3.1
+
+# Use a custom API base URL
+ai-commit-gen --apibase "https://custom-api-endpoint.com/v1"
 ```
